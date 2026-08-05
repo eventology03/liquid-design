@@ -1,0 +1,3 @@
+# Design lab. Not for indexing.
+User-agent: *
+Disallow: /

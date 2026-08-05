@@ -1,0 +1,266 @@
+<title>Eventology — Entry</title>
+<style>
+@font-face{font-family:"Fraunces";src:url(data:font/woff2;base64,__FRAUNCES__) format("woff2");font-weight:100 900;font-display:block;}
+@font-face{font-family:"Inter Tight";src:url(data:font/woff2;base64,__INTER__) format("woff2");font-weight:100 900;font-display:block;}
+@font-face{font-family:"Noto Kufi Arabic";src:url(data:font/woff2;base64,__KUFI__) format("woff2");font-weight:100 900;font-display:block;}
+
+:root{
+  color-scheme:dark;
+  /* ——— taken directly from the approved hero ——— */
+  --stage-0:#07070a;
+  --stage-1:#0c0c10;
+  --ember:#ff5a2e;
+  --azure:#1fb8c4;
+
+  --on-dark:#e8e8ea;
+  --line:rgba(255,255,255,.16);
+  --lift:rgba(255,255,255,.05);
+
+  --display:"Fraunces",Georgia,serif;
+  --sans:"Inter Tight",-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --gutter:clamp(20px,4vw,54px);
+}
+:root[dir="rtl"]{ --display:"Noto Kufi Arabic",Georgia,serif;
+                  --sans:"Noto Kufi Arabic","Inter Tight",sans-serif; }
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--stage-0);color:var(--on-dark);
+  font-family:var(--sans);-webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+
+/* ============ the stage: hero atmosphere, no mark, no liquid ============ */
+.stage{position:fixed;inset:0;overflow:hidden;
+  background:radial-gradient(120% 90% at 50% 108%,var(--stage-1),var(--stage-0) 60%);}
+.glow{position:absolute;top:50%;width:62vmin;height:62vmin;border-radius:50%;
+  filter:blur(70px);opacity:.5;transform:translateY(-50%);
+  mix-blend-mode:screen;animation:breathe 7s ease-in-out infinite;}
+.glow.ember{left:6%;background:radial-gradient(circle,var(--ember) 0%,transparent 70%);}
+.glow.azure{right:6%;background:radial-gradient(circle,var(--azure) 0%,transparent 70%);animation-delay:-3.5s;}
+@keyframes breathe{0%,100%{opacity:.36;transform:translateY(-50%) scale(1)}
+                   50%{opacity:.58;transform:translateY(-50%) scale(1.07)}}
+.grain{position:absolute;inset:0;opacity:.05;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+.vignette{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 80% at 50% 50%,transparent 45%,var(--stage-0) 100%);}
+
+/* ============ shell: logo in the corner, options in the middle. nothing else ============ */
+.shell{position:relative;z-index:2;height:100%;display:grid;grid-template-rows:auto 1fr;
+  padding:var(--gutter);transition:opacity .55s ease;}
+.brand{font-size:19px;letter-spacing:-.02em;font-weight:500;justify-self:start;}
+:root[dir="rtl"] .brand{justify-self:end;font-family:"Inter Tight",sans-serif;}
+
+.mid{display:grid;place-items:center;}
+.panel{width:min(940px,100%);display:none;}
+.panel.active{display:block;}
+.panel.enter{animation:rise .6s cubic-bezier(.16,.9,.28,1) both;}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+.choices{display:grid;grid-template-columns:repeat(2,1fr);gap:clamp(14px,2vw,24px);}
+@media (max-width:640px){ .choices{grid-template-columns:1fr;} }
+
+/* ============ the option — a glass plate that refracts, label stays crisp ============ */
+.choice{
+  position:relative;overflow:hidden;isolation:isolate;
+  border:1px solid var(--line);background:transparent;color:var(--on-dark);
+  cursor:pointer;padding:0;
+  min-height:clamp(160px,24vh,230px);
+  display:grid;place-items:center;
+  transition:border-color .4s ease,transform .4s cubic-bezier(.16,.9,.28,1);
+}
+.choice:hover{border-color:rgba(255,255,255,.34);transform:translateY(-3px);}
+.choice:focus-visible{outline:2px solid var(--azure);outline-offset:4px;}
+
+/* THE SURFACE THE LENS BENDS. without this there is nothing to refract. */
+.plate{
+  position:absolute;inset:-1px;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(130% 100% at 18% 26%,rgba(255,90,46,.42),transparent 62%),
+    radial-gradient(130% 100% at 84% 76%,rgba(31,184,196,.38),transparent 62%),
+    repeating-linear-gradient(114deg,rgba(255,255,255,.055) 0 1.5px,transparent 1.5px 9px),
+    linear-gradient(158deg,#15151b 0%,#0a0a0e 100%);
+  opacity:.62;transition:opacity .4s ease;
+}
+.choice:hover .plate{opacity:.9;}
+.plate.lit{filter:url(#lensFilter);}
+
+.label{
+  position:relative;z-index:2;
+  font-family:var(--display);font-weight:300;letter-spacing:-.02em;
+  font-size:clamp(30px,4.4vw,54px);line-height:1;
+  text-shadow:0 2px 22px rgba(0,0,0,.55);
+}
+:root[dir="rtl"] .label{font-weight:500;}
+
+@media (prefers-reduced-motion:reduce){
+  .plate.lit{filter:none;}
+  .panel.enter{animation:none;}
+  .choice:hover{transform:none;}
+  .glow{animation:none;}
+}
+
+/* the whole gate lifts away once a type is chosen; the site mounts underneath */
+body.leaving .shell{opacity:0;pointer-events:none;}
+</style>
+
+<div class="stage">
+  <div class="glow ember"></div>
+  <div class="glow azure"></div>
+  <div class="grain"></div>
+  <div class="vignette"></div>
+</div>
+
+<div class="shell">
+  <header><span class="brand">Eventology</span></header>
+
+  <main class="mid">
+    <!-- 01 · language -->
+    <section class="panel active enter" id="p1">
+      <div class="choices">
+        <button class="choice" type="button" data-lang="en">
+          <span class="plate" aria-hidden="true"></span><span class="label">English</span></button>
+        <button class="choice" type="button" data-lang="ar" lang="ar">
+          <span class="plate" aria-hidden="true"></span><span class="label"
+            style="font-family:'Noto Kufi Arabic',serif;font-weight:500">العربية</span></button>
+      </div>
+    </section>
+
+    <!-- 02 · visitor type -->
+    <section class="panel" id="p2">
+      <div class="choices">
+        <button class="choice" type="button" data-type="corporate">
+          <span class="plate" aria-hidden="true"></span><span class="label" id="cCorp">Corporate</span></button>
+        <button class="choice" type="button" data-type="private">
+          <span class="plate" aria-hidden="true"></span><span class="label" id="cPriv">Private</span></button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+  <defs>
+    <filter id="lensFilter" x="-40%" y="-40%" width="180%" height="180%"
+            filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse"
+            color-interpolation-filters="sRGB">
+      <feFlood flood-color="rgb(128,128,128)" result="flat"/>
+      <feImage id="lens" result="lensimg" preserveAspectRatio="none"
+               x="-9999" y="-9999" width="230" height="230"
+               href="data:image/png;base64,__LENS__"
+               xlink:href="data:image/png;base64,__LENS__"/>
+      <feComposite in="lensimg" in2="flat" operator="over" result="map"/>
+      <feDisplacementMap in="SourceGraphic" in2="map" scale="0"
+                         xChannelSelector="R" yChannelSelector="G" id="disp"/>
+    </filter>
+  </defs>
+</svg>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ------------------------------------------------------------------
+     WIRE THE REAL SITE HERE. One URL per combination. Until these point
+     at real pages the gate simply lifts away and the site mounts behind.
+     ------------------------------------------------------------------ */
+  var DESTINATIONS = {
+    "en|corporate": null,
+    "en|private"  : null,
+    "ar|corporate": null,
+    "ar|private"  : null
+  };
+
+  var STORE="eventology.entry";
+  var root=document.documentElement, body=document.body;
+  var p1=document.getElementById("p1"), p2=document.getElementById("p2");
+  var reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var LABEL={
+    en:{dir:"ltr",corporate:"Corporate",private:"Private"},
+    ar:{dir:"rtl",corporate:"شركات",   private:"أفراد"}
+  };
+
+  // ?reset re-opens the gates on a remembered browser (no on-screen control yet —
+  // that moves into the corner slider once the full design exists)
+  if(location.search.indexOf("reset")>-1){ try{localStorage.removeItem(STORE);}catch(e){} }
+
+  var state={lang:null,type:null};
+  try{ var s=JSON.parse(localStorage.getItem(STORE)||"null");
+       if(s&&s.lang&&s.type) state=s; }catch(e){}
+
+  function show(el){
+    [p1,p2].forEach(function(p){p.classList.remove("active","enter");});
+    el.classList.add("active"); if(!reduce) el.classList.add("enter");
+  }
+
+  function applyLang(lang){
+    var L=LABEL[lang];
+    root.setAttribute("dir",L.dir); root.setAttribute("lang",lang);
+    document.getElementById("cCorp").textContent=L.corporate;
+    document.getElementById("cPriv").textContent=L.private;
+  }
+
+  function enter(){
+    // no confirmation screen — go straight to the matching version
+    var url=DESTINATIONS[state.lang+"|"+state.type];
+    body.classList.add("leaving");
+    if(url){ setTimeout(function(){ location.href=url; },560); }
+  }
+
+  p1.querySelectorAll("[data-lang]").forEach(function(b){
+    b.addEventListener("click",function(){
+      state.lang=b.dataset.lang; applyLang(state.lang); show(p2);
+    });
+  });
+  p2.querySelectorAll("[data-type]").forEach(function(b){
+    b.addEventListener("click",function(){
+      state.type=b.dataset.type;
+      try{ localStorage.setItem(STORE,JSON.stringify(state)); }catch(e){}
+      enter();
+    });
+  });
+
+  if(state.lang && state.type){ applyLang(state.lang); enter(); }
+
+  // ============ liquid lens on the options ============
+  if(!reduce){
+    var lens=document.getElementById("lens"), disp=document.getElementById("disp");
+    var SIZE=230, MAX=46, LAG=0.075, EASE=0.10;
+    var cur=null, tx=0,ty=0, sx=0,sy=0, scale=0, target=0, raf=0, primed=false;
+
+    function tick(){
+      sx+=(tx-sx)*LAG; sy+=(ty-sy)*LAG;        // first-order lag = thick liquid
+      scale+=(target-scale)*EASE;
+      if(cur){
+        lens.setAttribute("x",(sx-SIZE/2).toFixed(1));
+        lens.setAttribute("y",(sy-SIZE/2).toFixed(1));
+        disp.setAttribute("scale",scale.toFixed(2));
+      }
+      var settled=Math.abs(target-scale)<0.05 &&
+                  Math.abs(tx-sx)<0.5 && Math.abs(ty-sy)<0.5;
+      if(settled && target===0){
+        if(cur){ cur.classList.remove("lit"); cur=null; }
+        disp.setAttribute("scale","0"); scale=0; primed=false; raf=0; return;
+      }
+      raf=requestAnimationFrame(tick);
+    }
+    function start(){ if(!raf) raf=requestAnimationFrame(tick); }
+
+    document.querySelectorAll(".choice").forEach(function(btn){
+      var plate=btn.querySelector(".plate");
+      btn.addEventListener("pointerenter",function(){
+        if(cur && cur!==plate) cur.classList.remove("lit");
+        cur=plate; plate.classList.add("lit"); target=MAX; primed=false; start();
+      });
+      btn.addEventListener("pointermove",function(e){
+        var r=btn.getBoundingClientRect();
+        tx=e.clientX-r.left; ty=e.clientY-r.top;
+        if(!primed){ sx=tx; sy=ty; primed=true; }
+        start();
+      },{passive:true});
+      btn.addEventListener("pointerleave",function(){ target=0; start(); });
+    });
+  }
+})();
+</script>

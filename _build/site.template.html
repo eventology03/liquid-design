@@ -1,0 +1,770 @@
+<title>Eventology — Full Design</title>
+<style>
+@font-face{font-family:"Fraunces";src:url(data:font/woff2;base64,__FRAUNCES__) format("woff2");font-weight:100 900;font-display:block;}
+@font-face{font-family:"Inter Tight";src:url(data:font/woff2;base64,__INTER__) format("woff2");font-weight:100 900;font-display:block;}
+@font-face{font-family:"Noto Kufi Arabic";src:url(data:font/woff2;base64,__KUFI__) format("woff2");font-weight:100 900;font-display:block;}
+
+:root{
+  --mask-fill:url("__MASKFILL__");
+  --mask-edge:url("__MASKEDGE__");
+}
+:root{
+  color-scheme:dark;
+  --stage-0:#07070a; --stage-1:#0c0c10;
+  --ember:#ff5a2e; --azure:#1fb8c4;
+  --ink:#0a0a0c; --sheet:#ffffff; --sheet-ink:#0a0a0c;
+  --on-dark:#e8e8ea; --on-dark-mute:#7e7e88; --on-sheet-mute:#6e6e76;
+  --hair-dark:rgba(255,255,255,.14); --hair-sheet:rgba(10,10,12,.14);
+  --display:"Fraunces",Georgia,serif;
+  --sans:"Inter Tight",-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,monospace;
+  --gutter:clamp(20px,4vw,56px);
+  --hair:var(--hair-dark);
+}
+*{box-sizing:border-box}
+/* NOTE: no overflow-x on <body>. It makes body the scroll container, which is a
+   known position:sticky / position:fixed hazard in WebKit. The only wide element
+   is the marquee track, and .strip already clips it. */
+body{margin:0;background:var(--stage-0);color:var(--on-dark);font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;}
+section{position:relative}
+.wrap{padding-inline:var(--gutter)}
+.sheet{background:var(--sheet);color:var(--sheet-ink);--hair:var(--hair-sheet)}
+.dark{background:var(--stage-0);color:var(--on-dark);--hair:var(--hair-dark)}
+.pad{padding:clamp(56px,7vw,110px) 0 clamp(64px,8vw,130px)}
+
+/* ============ nav ============ */
+.nav{position:fixed;inset:0 0 auto 0;z-index:40;display:flex;align-items:center;
+  justify-content:space-between;padding:22px var(--gutter);mix-blend-mode:difference;}
+.brand{font-size:19px;letter-spacing:-.02em;font-weight:500}
+.nav-links{display:flex;gap:clamp(16px,3vw,42px)}
+.nav-links a{color:inherit;text-decoration:none;font-size:13px;display:inline-flex;
+  align-items:flex-start;gap:3px;transition:opacity .2s}
+.nav-links a:hover{opacity:.55}
+.nav-links sup{font-family:var(--mono);font-size:8px;opacity:.5;letter-spacing:.08em}
+@media (max-width:720px){.nav-links{display:none}}
+
+
+/* ============ CORNER MENU ============ */
+.menu-btn{position:relative;z-index:2;display:inline-flex;align-items:center;gap:10px;
+  background:none;border:0;color:inherit;cursor:pointer;padding:6px 0;
+  font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase}
+.menu-btn .bars{display:grid;gap:4px;width:22px}
+.menu-btn .bars i{display:block;height:1px;background:currentColor;
+  transition:transform .35s cubic-bezier(.16,.9,.28,1),opacity .25s}
+body[data-menu="open"] .menu-btn .bars i:first-child{transform:translateY(2.5px) rotate(9deg)}
+body[data-menu="open"] .menu-btn .bars i:last-child{transform:translateY(-2.5px) rotate(-9deg)}
+
+.menu-backdrop{position:fixed;inset:0;z-index:60;background:rgba(4,4,6,.55);
+  opacity:0;pointer-events:none;transition:opacity .45s ease}
+body[data-menu="open"] .menu-backdrop{opacity:1;pointer-events:auto}
+
+.menu{position:fixed;top:0;bottom:0;inset-inline-end:0;z-index:70;
+  width:min(420px,86vw);background:var(--stage-1);
+  border-inline-start:1px solid var(--hair-dark);
+  padding:calc(var(--gutter) + 26px) var(--gutter) var(--gutter);
+  display:flex;flex-direction:column;
+  transform:translateX(100%);transition:transform .5s cubic-bezier(.16,.9,.28,1);
+  overflow-y:auto}
+:root[dir="rtl"] .menu{transform:translateX(-100%)}
+body[data-menu="open"] .menu{transform:none}
+
+.menu a,.menu button{display:flex;align-items:baseline;gap:8px;
+  color:var(--on-dark);text-decoration:none;background:none;border:0;cursor:pointer;
+  font-family:var(--sans);font-size:clamp(19px,2.4vw,26px);font-weight:400;
+  letter-spacing:-.015em;text-align:start;
+  padding:18px 0;border-bottom:1px solid var(--hair-dark);
+  transition:opacity .25s,padding-inline-start .35s cubic-bezier(.16,.9,.28,1)}
+.menu a:hover,.menu button:hover{opacity:.6;padding-inline-start:8px}
+.menu a:focus-visible,.menu button:focus-visible{outline:2px solid var(--azure);outline-offset:4px}
+.menu sup{font-family:var(--mono);font-size:9px;opacity:.5;letter-spacing:.08em}
+.menu .pref{margin-top:auto;border-bottom:0;border-top:1px solid var(--hair-dark);
+  color:var(--ember-hot,#ffa04d)}
+.menu .pref .hint{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;opacity:.6;margin-top:6px;color:var(--on-dark-mute)}
+@media (prefers-reduced-motion:reduce){
+  .menu{transition:none}.menu-backdrop{transition:none}
+  .menu-btn .bars i{transition:none}
+}
+
+/* ============ STAGE: mark -> wordmark -> page ============ */
+.stage{height:320vh;position:relative}          /* the scroll runway */
+.stage-fix{position:sticky;top:0;height:100vh;overflow:hidden;
+  display:grid;place-items:center;}
+.glow{position:absolute;top:50%;width:62vmin;height:62vmin;border-radius:50%;
+  filter:blur(70px);opacity:.5;transform:translateY(-50%);mix-blend-mode:screen;
+  animation:breathe 7s ease-in-out infinite}
+.glow.ember{left:6%;background:radial-gradient(circle,var(--ember),transparent 70%)}
+.glow.azure{right:6%;background:radial-gradient(circle,var(--azure),transparent 70%);animation-delay:-3.5s}
+@keyframes breathe{0%,100%{opacity:.36;transform:translateY(-50%) scale(1)}
+                   50%{opacity:.58;transform:translateY(-50%) scale(1.07)}}
+.grain{position:absolute;inset:0;opacity:.05;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.vignette{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 80% at 50% 50%,transparent 45%,var(--stage-0) 100%)}
+/* Corporate drops the ember/azure blobs behind the mark. Scoped to .stage-fix so the
+   gate keeps its own glows -- the visitor type is not known while the gate is up. */
+:root[data-type="corporate"] .stage-fix .glow{display:none}
+
+.hero-core{position:relative;z-index:3;display:grid;justify-items:center;gap:0}
+/* The lens filter lives on .rig (a ~320px box) and NEVER on the hero or viewport:
+   a full-viewport filter region exceeds the browser's filter-surface limit and the
+   effect is then silently dropped. */
+.rig.lit{filter:url(#lensFilter)}
+@media (prefers-reduced-motion:reduce){ .rig.lit{filter:none} }
+.rig{position:relative;width:min(26vw,320px);aspect-ratio:686/835;
+  will-change:transform,opacity}
+.mark{position:absolute;inset:0}
+.mark-layer{position:absolute;inset:0;
+  -webkit-mask-size:contain;mask-size:contain;
+  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
+  -webkit-mask-position:center;mask-position:center}
+.metal{-webkit-mask-image:var(--mask-fill);mask-image:var(--mask-fill);
+  background:linear-gradient(115deg,#3a3a42 0%,#7d818c 18%,#e9edf2 32%,#6a6e78 46%,
+    #3a3a42 58%,#e9edf2 74%,#55565e 88%,#3a3a42 100%);
+  background-size:260% 260%;animation:sheen 6s linear infinite}
+.tint{-webkit-mask-image:var(--mask-fill);mask-image:var(--mask-fill);
+  background:radial-gradient(60% 90% at 15% 50%,var(--ember),transparent 60%),
+             radial-gradient(60% 90% at 85% 50%,var(--azure),transparent 60%);
+  mix-blend-mode:color-dodge;opacity:.55}
+.rim{-webkit-mask-image:var(--mask-fill);mask-image:var(--mask-fill);
+  background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.9) 50%,transparent 60%);
+  background-size:260% 260%;animation:sheen 6s linear infinite;
+  mix-blend-mode:overlay;opacity:.5}
+@keyframes sheen{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+
+/* the wordmark — hidden until the first scroll */
+.wordmark{font-family:var(--display);font-weight:300;letter-spacing:-.03em;
+  font-size:clamp(34px,7.4vw,104px);line-height:1;margin-top:clamp(18px,3vw,40px);
+  opacity:0;transform:translateY(26px);will-change:opacity,transform}
+
+.cue{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);z-index:4;
+  font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--on-dark-mute);display:flex;align-items:center;gap:10px}
+.cue i{display:block;width:26px;height:1px;background:currentColor}
+
+
+/* ============ ENTRY GATE - overlays the site until a choice is made ============ */
+body[data-gate="open"]{overflow:hidden}
+body[data-gate="open"] .nav{opacity:0;pointer-events:none}
+body[data-gate="closing"] .gate{opacity:0;pointer-events:none}
+
+.gate{position:fixed;inset:0;z-index:100;background:var(--stage-0);
+  display:grid;grid-template-rows:auto 1fr;padding:var(--gutter);
+  transition:opacity .65s ease}
+.gate-bg{position:absolute;inset:0;overflow:hidden;
+  background:radial-gradient(120% 90% at 50% 108%,var(--stage-1),var(--stage-0) 60%)}
+.gate .brand{position:relative;z-index:2;justify-self:start}
+.gate-mid{position:relative;z-index:2;display:grid;place-items:center}
+
+.gpanel{width:min(940px,100%);display:none}
+.gpanel.active{display:block}
+.gpanel.enter{animation:rise .6s cubic-bezier(.16,.9,.28,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.gchoices{display:grid;grid-template-columns:repeat(2,1fr);gap:clamp(14px,2vw,24px)}
+@media (max-width:640px){.gchoices{grid-template-columns:1fr}}
+
+.choice{position:relative;overflow:hidden;isolation:isolate;
+  border:1px solid var(--hair-dark);background:transparent;color:var(--on-dark);
+  cursor:pointer;padding:0;min-height:clamp(160px,24vh,230px);
+  display:grid;place-items:center;
+  transition:border-color .4s ease,transform .4s cubic-bezier(.16,.9,.28,1)}
+.choice:hover{border-color:rgba(255,255,255,.34);transform:translateY(-3px)}
+.choice:focus-visible{outline:2px solid var(--azure);outline-offset:4px}
+
+/* THE SURFACE THE LENS BENDS. without this there is nothing to refract.
+   NOTE: named .g-plate, NOT .plate -- the Work section already owns .plate and
+   its later rules were collapsing this to 0x0. */
+.g-plate{position:absolute;inset:-1px;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(130% 100% at 18% 26%,rgba(255,90,46,.42),transparent 62%),
+    radial-gradient(130% 100% at 84% 76%,rgba(31,184,196,.38),transparent 62%),
+    repeating-linear-gradient(114deg,rgba(255,255,255,.055) 0 1.5px,transparent 1.5px 9px),
+    linear-gradient(158deg,#15151b 0%,#0a0a0e 100%);
+  opacity:.62;transition:opacity .4s ease}
+.choice:hover .g-plate{opacity:.9}
+.g-plate.lit{filter:url(#lensFilter)}
+.label{position:relative;z-index:2;font-family:var(--display);font-weight:300;
+  letter-spacing:-.02em;font-size:clamp(30px,4.4vw,54px);line-height:1;
+  text-shadow:0 2px 22px rgba(0,0,0,.55)}
+@media (prefers-reduced-motion:reduce){
+  .g-plate.lit{filter:none}.gpanel.enter{animation:none}.choice:hover{transform:none}
+}
+
+/* ============ section grammar ============ */
+.sec-head{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;
+  padding:0 var(--gutter) 14px;border-bottom:1px solid var(--hair);
+  font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase}
+.sec-head .idx{display:flex;align-items:center;gap:8px}
+.sec-head .dot{width:5px;height:5px;background:currentColor}
+.sec-head .name{justify-self:center;opacity:.55}
+.sec-head .meta{justify-self:end;opacity:.55}
+.cut{clip-path:polygon(0 3.2vw,100% 0,100% 100%,0 100%)}
+
+h2.statement{font-family:var(--display);font-weight:300;letter-spacing:-.025em;
+  line-height:1.04;font-size:clamp(30px,5.4vw,72px);margin:0;max-width:19ch;
+  text-wrap:balance}
+.lede{color:var(--on-sheet-mute);font-size:15px;line-height:1.65;max-width:62ch}
+.dark .lede{color:var(--on-dark-mute)}
+
+/* marquee strip */
+.strip{border-block:1px solid var(--hair);overflow:hidden;padding:18px 0}
+.track{display:flex;gap:56px;width:max-content;animation:slide 38s linear infinite;
+  font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--on-dark-mute)}
+@keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* numbered rows */
+.rows{display:grid;gap:0;margin-top:clamp(30px,4vw,54px)}
+.row{display:grid;grid-template-columns:auto 1fr;gap:clamp(18px,4vw,64px);
+  align-items:start;padding:clamp(22px,3vw,38px) 0;border-top:1px solid var(--hair)}
+.row .n{font-family:var(--display);font-weight:300;line-height:.9;
+  font-size:clamp(34px,6vw,84px);opacity:.28;font-variant-numeric:tabular-nums}
+.row h3{margin:0 0 8px;font-size:clamp(17px,1.9vw,23px);font-weight:500;letter-spacing:-.01em}
+.row p{margin:0;color:var(--on-sheet-mute);font-size:14.5px;line-height:1.62;max-width:56ch}
+.dark .row p{color:var(--on-dark-mute)}
+
+/* three-up */
+.trio{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:clamp(20px,3vw,44px);margin-top:clamp(30px,4vw,54px)}
+.trio .n{font-family:var(--display);font-size:clamp(30px,4vw,56px);font-weight:300;
+  opacity:.3;line-height:1}
+.trio h3{margin:12px 0 8px;font-size:clamp(18px,2vw,25px);font-weight:500;letter-spacing:-.015em}
+.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--on-dark-mute);margin:0 0 18px}
+.sheet .eyebrow{color:var(--on-sheet-mute)}
+
+/* work plates */
+.plates{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:clamp(16px,2.4vw,30px);margin-top:clamp(30px,4vw,54px)}
+.plate{position:relative;aspect-ratio:4/3;border-radius:10px;overflow:hidden;
+  background:linear-gradient(150deg,#15151b,#0a0a0e)}
+.plate .art{position:absolute;inset:8%;border-radius:6px;
+  background:
+    radial-gradient(120% 90% at 20% 25%,rgba(255,90,46,.5),transparent 60%),
+    radial-gradient(120% 90% at 80% 75%,rgba(31,184,196,.45),transparent 60%),
+    repeating-linear-gradient(114deg,rgba(255,255,255,.07) 0 1.5px,transparent 1.5px 10px),
+    linear-gradient(158deg,#1a1a21,#0b0b10)}
+.plate .cap{position:absolute;left:0;right:0;bottom:0;padding:16px 18px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--on-dark);background:linear-gradient(transparent,rgba(0,0,0,.72))}
+
+/* CTA: text + arrow + rule, never a filled button */
+.cta{display:inline-flex;align-items:center;justify-content:space-between;gap:48px;
+  min-width:230px;padding:10px 0;border-bottom:1px solid currentColor;
+  font-size:15px;text-decoration:none;color:inherit;transition:opacity .25s,gap .25s}
+.cta:hover{opacity:.6;gap:64px}
+.cta:focus-visible{outline:2px solid currentColor;outline-offset:6px}
+
+footer{border-top:1px solid var(--hair);padding:clamp(40px,5vw,70px) 0}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:clamp(22px,3vw,44px)}
+.fgrid h4{margin:0 0 12px;font-family:var(--mono);font-size:10px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--on-dark-mute);font-weight:500}
+.fgrid a{display:block;color:inherit;text-decoration:none;font-size:14.5px;
+  padding:4px 0;transition:opacity .2s}
+.fgrid a:hover{opacity:.55}
+.motto{margin-top:clamp(30px,4vw,52px);font-family:var(--mono);font-size:11px;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--on-dark-mute)}
+
+/* ============ scroll reveals (Fuel: rise + fade on entry, staggered) ============ */
+.rv{opacity:0;transform:translateY(26px);
+  transition:opacity .9s cubic-bezier(.16,.9,.28,1),transform .9s cubic-bezier(.16,.9,.28,1)}
+.rv.in{opacity:1;transform:none}
+
+@media (prefers-reduced-motion:reduce){
+  .rv{opacity:1;transform:none;transition:none}
+  .glow,.metal,.rim,.track{animation:none}
+  .wordmark{opacity:1;transform:none}
+}
+</style>
+
+<div class="gate" id="gate">
+  <div class="gate-bg">
+    <div class="glow ember"></div><div class="glow azure"></div>
+    <div class="grain"></div><div class="vignette"></div>
+  </div>
+  <header><span class="brand">Eventology</span></header>
+  <main class="gate-mid">
+    <section class="gpanel active enter" id="g1">
+      <div class="gchoices">
+        <button class="choice" type="button" data-lang="en">
+          <span class="g-plate" aria-hidden="true"></span><span class="label">English</span></button>
+        <button class="choice" type="button" data-lang="ar" lang="ar">
+          <span class="g-plate" aria-hidden="true"></span><span class="label"
+            style="font-family:'Noto Kufi Arabic',serif;font-weight:500">العربية</span></button>
+      </div>
+    </section>
+    <section class="gpanel" id="g2">
+      <div class="gchoices">
+        <button class="choice" type="button" data-type="corporate">
+          <span class="g-plate" aria-hidden="true"></span><span class="label" id="gCorp">Corporate</span></button>
+        <button class="choice" type="button" data-type="private">
+          <span class="g-plate" aria-hidden="true"></span><span class="label" id="gPriv">Private</span></button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+  <defs>
+    <filter id="lensFilter" x="-40%" y="-40%" width="180%" height="180%"
+            filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse"
+            color-interpolation-filters="sRGB">
+      <feFlood flood-color="rgb(128,128,128)" result="flat"/>
+      <feImage id="lens" result="lensimg" preserveAspectRatio="none"
+               x="-9999" y="-9999" width="230" height="230"
+               href="data:image/png;base64,__LENS__"
+               xlink:href="data:image/png;base64,__LENS__"/>
+      <feComposite in="lensimg" in2="flat" operator="over" result="map"/>
+      <feDisplacementMap in="SourceGraphic" in2="map" scale="0"
+                         xChannelSelector="R" yChannelSelector="G" id="disp"/>
+    </filter>
+  </defs>
+</svg>
+
+<nav class="nav">
+  <span class="brand">Eventology</span>
+  <button class="menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="menu">
+    <span class="bars" aria-hidden="true"><i></i><i></i></span>
+    <span id="menuBtnLabel">Menu</span>
+  </button>
+</nav>
+
+<div class="menu-backdrop" id="menuBackdrop"></div>
+<nav class="menu" id="menu" aria-label="Site menu">
+  <a href="#who"><span data-k="who">Who We Are</span><sup>01</sup></a>
+  <a href="#services"><span data-k="services">Services</span><sup>02</sup></a>
+  <a href="#work"><span data-k="work">Work</span><sup>03</sup></a>
+  <a href="#contact"><span data-k="contact">Contact</span><sup>04</sup></a>
+  <button class="pref" id="prefBtn" type="button">
+    <span><span data-k="pref">Preferences</span><sup>05</sup>
+      <span class="hint" data-k="prefHint">Language &amp; visitor type</span></span>
+  </button>
+</nav>
+
+<!-- ============ STAGE ============ -->
+<section class="stage" id="top">
+  <div class="stage-fix">
+    <div class="glow ember"></div>
+    <div class="glow azure"></div>
+    <div class="grain"></div>
+    <div class="vignette"></div>
+
+    <div class="hero-core">
+      <div class="rig" id="rig">
+        <div class="mark">
+          <div class="mark-layer metal"></div>
+          <div class="mark-layer tint"></div>
+          <div class="mark-layer rim"></div>
+        </div>
+      </div>
+      <div class="wordmark" id="wordmark">Eventology</div>
+    </div>
+
+    <div class="cue" id="cue"><i></i>Scroll</div>
+  </div>
+</section>
+
+<!-- ============ strip ============ -->
+<div class="strip" id="strip">
+  <div class="track" id="track"></div>
+</div>
+
+<!-- ============ (01) principles ============ -->
+<section class="dark pad" id="principles">
+  <div class="sec-head"><span class="idx"><span class="dot"></span>(01)</span>
+    <span class="name">(Principles)</span><span class="meta">&copy; 2026</span></div>
+  <div class="wrap" style="padding-top:clamp(34px,4vw,60px)">
+    <p class="eyebrow rv">Our Principles</p>
+    <div class="trio">
+      <div class="rv"><div class="n">01</div><h3>Reliability.</h3>
+        <p class="lede">To be the trusted force behind seamlessly executed events, where structure, clarity, and disciplined execution turn ideas into reliable outcomes.</p></div>
+      <div class="rv"><div class="n">02</div><h3>Little Details.</h3>
+        <p class="lede">We plan, design, and execute events as a unified operation, taking full responsibility for every detail to ensure each event is delivered exactly as intended.</p></div>
+      <div class="rv"><div class="n">03</div><h3>Simple and reliable</h3>
+        <p class="lede">Our goal is to streamline the execution of your ideas by delivering solutions that optimize time, effort, and budget through an extensive network of service providers.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ (02) about ============ -->
+<section class="sheet pad cut" id="who">
+  <div class="sec-head"><span class="idx"><span class="dot"></span>(02)</span>
+    <span class="name">(About)</span><span class="meta">&copy; 2026</span></div>
+  <div class="wrap" style="padding-top:clamp(34px,4vw,60px)">
+    <h2 class="statement rv">United team, one idea, and a goal succeeded.</h2>
+    <div class="rows">
+      <div class="row rv"><div class="n">01</div><div><h3>Who We Are</h3>
+        <p>Eventology exists to transform event execution from a source of stress and operational burden into a seamless process with dependable outcomes.</p></div></div>
+      <div class="row rv"><div class="n">02</div><div><h3>What We Do</h3>
+        <p>We take end-to-end ownership of your event under a single accountable operation &mdash; from vendor management and paperwork to gate control, guest wayfinding and stage security.</p></div></div>
+      <div class="row rv"><div class="n">03</div><div><h3>How We Do It</h3>
+        <p>We adapt to each event's unique demands, sourcing and coordinating every solution required to deliver the intended outcome.</p></div></div>
+      <div class="row rv"><div class="n">04</div><div><h3>Why Choose Us</h3>
+        <p>Our approach gives strategic ideation and collaborative planning the weight they deserve, building a precise operational blueprint that guarantees predictable outcomes.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ (03) services ============ -->
+<section class="dark pad" id="services">
+  <div class="sec-head"><span class="idx"><span class="dot"></span>(03)</span>
+    <span class="name">(Services)</span><span class="meta">&copy; 2026</span></div>
+  <div class="wrap" style="padding-top:clamp(34px,4vw,60px)">
+    <p class="eyebrow rv">What We Handle</p>
+    <h2 class="statement rv">Six disciplines. One operation.</h2>
+    <div class="rows" id="svcRows"></div>
+  </div>
+</section>
+
+<!-- ============ (04) work ============ -->
+<section class="sheet pad cut" id="work">
+  <div class="sec-head"><span class="idx"><span class="dot"></span>(04)</span>
+    <span class="name">(Work)</span><span class="meta">&copy; 2026</span></div>
+  <div class="wrap" style="padding-top:clamp(34px,4vw,60px)">
+    <p class="eyebrow rv">Selected Events</p>
+    <div class="plates" id="plates"></div>
+  </div>
+</section>
+
+<!-- ============ (05) contact ============ -->
+<section class="dark pad" id="contact">
+  <div class="sec-head"><span class="idx"><span class="dot"></span>(05)</span>
+    <span class="name">(Contact)</span><span class="meta">&copy; 2026</span></div>
+  <div class="wrap" style="padding-top:clamp(34px,4vw,60px)">
+    <p class="eyebrow rv">Let's Talk</p>
+    <h2 class="statement rv">Tell us about your idea. We'll handle how.</h2>
+    <div class="trio">
+      <div class="rv"><h3>Chat on WhatsApp</h3>
+        <p class="lede">Get a reply during operating hours, usually within the hour.</p>
+        <a class="cta" href="#" style="margin-top:16px">Open WhatsApp <span>&#8599;</span></a></div>
+      <div class="rv"><h3>Email us</h3>
+        <p class="lede">Send a brief, deck, or a paragraph &mdash; we'll write back with next steps.</p>
+        <a class="cta" href="#" style="margin-top:16px">info@eventology.sa <span>&#8599;</span></a></div>
+    </div>
+  </div>
+</section>
+
+<footer class="dark">
+  <div class="wrap">
+    <div class="fgrid">
+      <div><h4>Navigate</h4>
+        <a href="#who">Who We Are</a><a href="#services">Services</a>
+        <a href="#work">Work</a><a href="#contact">Contact</a><a href="#">Tickets</a></div>
+      <div><h4>Contact</h4>
+        <a href="#">info@eventology.sa</a><a href="#">WhatsApp</a><a href="#">Instagram</a></div>
+      <div><h4>Eventology</h4>
+        <p class="lede" style="font-size:14px">Structure. Clarity. Execution.</p></div>
+    </div>
+    <div class="motto">Event Operations, Engineered. &nbsp;&middot;&nbsp; &copy; 2026</div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---------- content ----------
+  var MARQUEE=["Corporate Galas","Product Launches","Private Ceremonies","Conferences",
+               "Exhibitions","Brand Activations","Cultural Programs"];
+  var t=document.getElementById("track");
+  var line=MARQUEE.concat(MARQUEE).concat(MARQUEE).concat(MARQUEE);
+  line.forEach(function(x){var s=document.createElement("span");s.textContent=x;t.appendChild(s);});
+
+  var SERVICES=[
+    ["Event Planning and Management","From concept to execution, comprehensive solutions for conferences, meetings and events across corporate and private clients."],
+    ["On-Site Supervision and Execution","Precise on-site oversight ensuring smooth event flow and the highest quality across every detail on the day."],
+    ["Equipment and Décor","Table and seating setups, floral arrangements and furniture selection aligned with the event's identity."],
+    ["Hospitality and Catering","Premium buffets, beverages, professional serving and a trained hospitality team."],
+    ["Technical and Visual Production","Advanced sound and lighting, display screens, photography and video equipment, and full media coverage."],
+    ["Visual Identity and Design","Invitations, advertisements and visual systems that reflect the character of the event and the organizing brand."]
+  ];
+  var sr=document.getElementById("svcRows");
+  SERVICES.forEach(function(s,i){
+    var d=document.createElement("div"); d.className="row rv";
+    d.innerHTML='<div class="n">'+("0"+(i+1))+'</div><div><h3>'+s[0]+'</h3><p>'+s[1]+'</p></div>';
+    sr.appendChild(d);
+  });
+
+  var WORK=["Corporate Gala / Riyadh","Product Launch / Jeddah","Cultural Program / AlUla","Brand Activation / Riyadh"];
+  var pl=document.getElementById("plates");
+  WORK.forEach(function(w){
+    var d=document.createElement("div"); d.className="plate rv";
+    d.innerHTML='<div class="art"></div><div class="cap">'+w+'</div>';
+    pl.appendChild(d);
+  });
+
+  // ---------- STAGE: mark -> wordmark -> page ----------
+  // Scroll-driven, not time-driven, exactly as the reference behaves.
+  var stage=document.getElementById("top"),
+      rig=document.getElementById("rig"),
+      wm=document.getElementById("wordmark"),
+      cue=document.getElementById("cue");
+
+  function clamp(v,a,b){return v<a?a:v>b?b:v;}
+
+  function onScroll(){
+    var r=stage.getBoundingClientRect();
+    var total=stage.offsetHeight-window.innerHeight;
+    var p=clamp(-r.top/total,0,1);          // 0 at load, 1 when the stage is done
+
+    // beat 1 (0 -> .34): the wordmark rises under the mark
+    var a=clamp(p/0.34,0,1);
+    wm.style.opacity=a;
+    wm.style.transform="translateY("+(26*(1-a))+"px)";
+
+    // the mark drifts up a touch to make room
+    rig.style.transform="translateY("+(-34*a)+"px)";
+
+    // beat 2 (.55 -> 1): the whole hero recedes and the page takes over
+    var b=clamp((p-0.55)/0.45,0,1);
+    var core=rig.parentNode;
+    core.style.opacity=(1-b);
+    core.style.transform="translateY("+(-60*b)+"px) scale("+(1-0.06*b)+")";
+
+    cue.style.opacity=clamp(1-p*4,0,1);
+  }
+
+  if(reduce){ wm.style.opacity=1; wm.style.transform="none"; }
+  else{
+    // Called directly rather than through requestAnimationFrame. It is a handful of
+    // style writes, and an rAF-coalesced version stalls permanently if rAF is ever
+    // throttled (background tab, some WebKit conditions) -- the hero then freezes.
+    addEventListener("scroll",onScroll,{passive:true});
+    addEventListener("resize",onScroll,{passive:true});
+    onScroll();
+  }
+
+  // ---------- section reveals ----------
+  var rv=document.querySelectorAll(".rv");
+  if(reduce || !("IntersectionObserver" in window)){
+    rv.forEach(function(el){el.classList.add("in");});
+  }else{
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); }
+      });
+    },{rootMargin:"0px 0px -12% 0px",threshold:0.05});
+    rv.forEach(function(el,i){
+      el.style.transitionDelay=((i%4)*80)+"ms";
+      io.observe(el);
+    });
+  }
+})();
+</script>
+<script>
+(function(){
+  "use strict";
+  var STORE="eventology.entry", gate=document.getElementById("gate"), body=document.body;
+  if(!gate) return;
+  var reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var g1=document.getElementById("g1"), g2=document.getElementById("g2");
+  var LABEL={en:{corporate:"Corporate",priv:"Private"},
+             ar:{corporate:"شركات",   priv:"أفراد"}};
+
+  if(location.search.indexOf("reset")>-1){ try{localStorage.removeItem(STORE);}catch(e){} }
+  var saved=null; try{ saved=JSON.parse(localStorage.getItem(STORE)||"null"); }catch(e){}
+
+  if(saved && saved.lang && saved.type){          // remembered -> start with it hidden,
+    gate.style.display="none";                   // but keep it for Preferences
+    document.documentElement.dataset.type=saved.type;
+    if(window.__evtSetLang) window.__evtSetLang(saved.lang);
+    wire();
+    return;
+  }
+
+  body.dataset.gate="open";
+  var state={lang:null,type:null};
+
+  function drop(){                                 // hand the page over
+    body.dataset.gate="closing";
+    setTimeout(function(){
+      // hidden, not destroyed -- Preferences reopens this exact element
+      gate.style.display="none";
+      body.removeAttribute("data-gate");
+      dispatchEvent(new Event("scroll"));          // let the hero settle at its start state
+    }, reduce?0:680);
+  }
+
+  // Reopen from the very beginning: clear the stored choice, reset to screen 01,
+  // send the page back to the top and lock scrolling again.
+  window.__evtOpenGate=function(){
+    try{ localStorage.removeItem(STORE); }catch(e){}
+    state={lang:null,type:null};
+    delete document.documentElement.dataset.type;
+    g2.classList.remove("active","enter");
+    g1.classList.add("active"); if(!reduce) g1.classList.add("enter");
+    gate.style.display="";
+    void gate.offsetWidth;                          // restart the transition cleanly
+    body.dataset.gate="open";
+    window.scrollTo(0,0);
+  };
+
+  function wire(){
+  g1.querySelectorAll("[data-lang]").forEach(function(b){
+    b.addEventListener("click",function(){
+      state.lang=b.dataset.lang;
+      document.getElementById("gCorp").textContent=LABEL[state.lang].corporate;
+      document.getElementById("gPriv").textContent=LABEL[state.lang].priv;
+      g1.classList.remove("active","enter");
+      g2.classList.add("active"); if(!reduce) g2.classList.add("enter");
+    });
+  });
+  g2.querySelectorAll("[data-type]").forEach(function(b){
+    b.addEventListener("click",function(){
+      state.type=b.dataset.type;
+      try{ localStorage.setItem(STORE,JSON.stringify(state)); }catch(e){}
+      document.documentElement.dataset.type=state.type;
+      if(window.__evtSetLang) window.__evtSetLang(state.lang);
+      // NOTE: the page below is the English version. Arabic content is not wired yet, so the
+      // choice is recorded but the layout is NOT mirrored -- mirroring English copy would
+      // look broken. Set dir="rtl" here once the Arabic content exists.
+      drop();
+    });
+  });
+  }
+  wire();
+
+  // ---- liquid lens on the options ----
+  if(!reduce){
+    var lens=document.getElementById("lens"), disp=document.getElementById("disp");
+    var SIZE=230, MAX=46, LAG=0.075, EASE=0.10;
+    var cur=null,tx=0,ty=0,sx=0,sy=0,scale=0,target=0,raf=0,primed=false;
+    function tick(){
+      sx+=(tx-sx)*LAG; sy+=(ty-sy)*LAG; scale+=(target-scale)*EASE;
+      if(cur){ lens.setAttribute("width",SIZE); lens.setAttribute("height",SIZE);
+               lens.setAttribute("x",(sx-SIZE/2).toFixed(1));
+               lens.setAttribute("y",(sy-SIZE/2).toFixed(1));
+               disp.setAttribute("scale",scale.toFixed(2)); }
+      var settled=Math.abs(target-scale)<0.05&&Math.abs(tx-sx)<0.5&&Math.abs(ty-sy)<0.5;
+      if(settled&&target===0){ if(cur){cur.classList.remove("lit");cur=null;}
+        disp.setAttribute("scale","0"); scale=0; primed=false; raf=0; return; }
+      raf=requestAnimationFrame(tick);
+    }
+    function start(){ if(!raf) raf=requestAnimationFrame(tick); }
+    gate.querySelectorAll(".choice").forEach(function(btn){
+      var plate=btn.querySelector(".g-plate");
+      btn.addEventListener("pointerenter",function(){
+        if(cur&&cur!==plate) cur.classList.remove("lit");
+        cur=plate; plate.classList.add("lit"); target=MAX; primed=false; start();
+      });
+      btn.addEventListener("pointermove",function(e){
+        var r=btn.getBoundingClientRect(); tx=e.clientX-r.left; ty=e.clientY-r.top;
+        if(!primed){ sx=tx; sy=ty; primed=true; } start();
+      },{passive:true});
+      btn.addEventListener("pointerleave",function(){ target=0; start(); });
+    });
+  }
+})();
+</script>
+<script>
+(function(){
+  "use strict";
+  var body=document.body,
+      btn=document.getElementById("menuBtn"),
+      menu=document.getElementById("menu"),
+      back=document.getElementById("menuBackdrop"),
+      pref=document.getElementById("prefBtn");
+  if(!btn||!menu) return;
+
+  // Arabic is ready here so the RTL version needs no second pass.
+  var T={
+    en:{menu:"Menu",close:"Close",who:"Who We Are",services:"Services",work:"Work",
+        contact:"Contact",pref:"Preferences",prefHint:"Language & visitor type"},
+    ar:{menu:"القائمة",close:"إغلاق",who:"من نحن",services:"الخدمات",work:"أعمالنا",
+        contact:"تواصل معنا",pref:"التفضيلات",prefHint:"اللغة ونوع الزائر"}
+  };
+  window.__evtSetLang=function(lang){
+    var t=T[lang]||T.en;
+    menu.querySelectorAll("[data-k]").forEach(function(el){
+      if(t[el.dataset.k]) el.textContent=t[el.dataset.k];
+    });
+    document.getElementById("menuBtnLabel").textContent =
+      body.dataset.menu==="open" ? t.close : t.menu;
+    menu.__t=t;
+  };
+  window.__evtSetLang("en");
+
+  function setOpen(open){
+    body.dataset.menu = open ? "open" : "";
+    if(!open) body.removeAttribute("data-menu");
+    btn.setAttribute("aria-expanded", open?"true":"false");
+    var t=menu.__t||T.en;
+    document.getElementById("menuBtnLabel").textContent = open ? t.close : t.menu;
+    if(open) menu.querySelector("a").focus({preventScroll:true});
+  }
+  btn.addEventListener("click",function(){ setOpen(body.dataset.menu!=="open"); });
+  back.addEventListener("click",function(){ setOpen(false); });
+  menu.querySelectorAll("a").forEach(function(a){
+    a.addEventListener("click",function(){ setOpen(false); });
+  });
+  addEventListener("keydown",function(e){
+    if(e.key==="Escape" && body.dataset.menu==="open"){ setOpen(false); btn.focus(); }
+  });
+
+  // Preferences -> back to the gate, from the very beginning
+  pref.addEventListener("click",function(){
+    setOpen(false);
+    if(window.__evtOpenGate) window.__evtOpenGate();
+    else location.href=location.pathname+"?reset";   // fallback if the gate was never built
+  });
+})();
+</script>
+<script>
+(function(){
+  "use strict";
+  // Same glass lens as main-hero, same constants -- this is the approved feel.
+  // It shares #lensFilter with the gate; they never run at the same time, and the
+  // guard below stops the hero touching it while the gate is open.
+  var stage=document.querySelector(".stage-fix"),
+      rig=document.getElementById("rig"),
+      lens=document.getElementById("lens"),
+      disp=document.getElementById("disp");
+  if(!stage||!rig||!lens||!disp) return;
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  var SIZE=330, MAX=56, REACH=150, LAG=0.065, EASE=0.07;
+  var tx=0,ty=0,sx=0,sy=0,scale=0,target=0,raf=0,primed=false;
+  function gateOpen(){ return document.body.dataset.gate==="open"; }
+
+  function onMove(e){
+    if(gateOpen()) return;
+    var r=rig.getBoundingClientRect();
+    tx=e.clientX-r.left; ty=e.clientY-r.top;
+    var dx=Math.max(r.left-e.clientX,0,e.clientX-r.right);
+    var dy=Math.max(r.top-e.clientY,0,e.clientY-r.bottom);
+    target=MAX*Math.max(0,1-Math.sqrt(dx*dx+dy*dy)/REACH);
+    if(!primed){ sx=tx; sy=ty; primed=true; }
+    if(!raf) raf=requestAnimationFrame(tick);
+  }
+  stage.addEventListener("pointermove",onMove,{passive:true});
+  stage.addEventListener("pointerdown",onMove,{passive:true});
+  stage.addEventListener("touchmove",function(e){ if(e.touches[0]) onMove(e.touches[0]); },{passive:true});
+  stage.addEventListener("pointerleave",function(){ target=0; if(!raf) raf=requestAnimationFrame(tick); });
+
+  function tick(){
+    // First-order lag: the lens trails the cursor and never overshoots. A spring
+    // would bounce, which reads as rubber rather than thick liquid.
+    sx+=(tx-sx)*LAG; sy+=(ty-sy)*LAG;
+    scale+=(target-scale)*EASE;
+    if(scale>0.4){
+      rig.classList.add("lit");
+      lens.setAttribute("width",SIZE); lens.setAttribute("height",SIZE);
+      lens.setAttribute("x",(sx-SIZE/2).toFixed(1));
+      lens.setAttribute("y",(sy-SIZE/2).toFixed(1));
+      disp.setAttribute("scale",scale.toFixed(2));
+    }
+    var settled=Math.abs(target-scale)<0.05&&Math.abs(tx-sx)<0.5&&Math.abs(ty-sy)<0.5;
+    if(settled&&target===0){
+      rig.classList.remove("lit");
+      disp.setAttribute("scale","0"); scale=0; primed=false; raf=0; return;
+    }
+    raf=requestAnimationFrame(tick);
+  }
+})();
+</script>
+
+
+

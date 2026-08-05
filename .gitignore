@@ -1,0 +1,18 @@
+# Ignore everything, whitelist only design work
+/*
+!.gitignore
+!README.md
+!PROTECTING-THE-WORK.md
+!STRUCTURE.md
+!index.html
+!robots.txt
+!full-design/
+!entry-gates/
+!main-hero/
+!_build/
+
+# Always block
+.DS_Store
+**/.DS_Store
+turb-test.html
+safari-check.html

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>Eventology — Design Lab</title>
+<style>
+  :root{
+    --stage-0:#07070a; --stage-1:#0c0c10;
+    --ember:#ff5a2e; --azure:#1fb8c4;
+    --on-dark:#e8e8ea; --mute:#7e7e88;
+    --hair:rgba(255,255,255,.14);
+    --sans:-apple-system,"Helvetica Neue",Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,monospace;
+    --gutter:clamp(20px,4vw,56px);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--stage-0);color:var(--on-dark);
+    font-family:var(--sans);-webkit-font-smoothing:antialiased;
+    padding:var(--gutter);
+    background-image:
+      radial-gradient(50vmin 50vmin at 8% 40%,rgba(255,90,46,.16),transparent 70%),
+      radial-gradient(50vmin 50vmin at 92% 60%,rgba(31,184,196,.14),transparent 70%);}
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;
+    padding-bottom:14px;border-bottom:1px solid var(--hair);flex-wrap:wrap}
+  .brand{font-size:19px;font-weight:500;letter-spacing:-.02em}
+  .tag{font-family:var(--mono);font-size:10px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--mute)}
+  h1{font-size:clamp(24px,4vw,40px);font-weight:400;letter-spacing:-.025em;
+    margin:clamp(30px,5vw,54px) 0 8px}
+  .lead{color:var(--mute);font-size:15px;line-height:1.6;max-width:60ch;margin:0}
+  ul{list-style:none;padding:0;margin:clamp(28px,4vw,44px) 0 0;
+    display:grid;gap:0}
+  li a{display:grid;grid-template-columns:auto 1fr auto;gap:clamp(12px,2vw,28px);
+    align-items:baseline;padding:20px 0;border-bottom:1px solid var(--hair);
+    color:inherit;text-decoration:none;
+    transition:padding-inline-start .3s cubic-bezier(.16,.9,.28,1),opacity .25s}
+  li a:hover{padding-inline-start:10px;opacity:.72}
+  li a:focus-visible{outline:2px solid var(--azure);outline-offset:4px}
+  .n{font-family:var(--mono);font-size:10px;color:var(--mute);letter-spacing:.16em}
+  .t{font-size:clamp(16px,2vw,20px);letter-spacing:-.01em}
+  .t small{display:block;color:var(--mute);font-size:13px;margin-top:5px;
+    letter-spacing:0;line-height:1.5}
+  .go{color:var(--mute);font-size:14px}
+  li a:hover .go{color:var(--on-dark)}
+  .live .t{color:#ffd9c2}
+  footer{margin-top:clamp(36px,5vw,64px);padding-top:16px;border-top:1px solid var(--hair);
+    font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--mute);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  footer a{color:var(--mute)}
+  @media (prefers-reduced-motion:reduce){ li a{transition:none} }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">Eventology</span>
+  <span class="tag">Design Lab &middot; unlisted</span>
+</header>
+
+<h1>Design lab</h1>
+<p class="lead">Real pages on a real URL, for testing in real browsers &mdash; Safari, phones,
+actual scrolling. Each page is self-contained: fonts, mark masks and the lens map are all
+embedded, so nothing loads from the network.</p>
+
+<ul>
+  <li class="live"><a href="full-design/full-design.html">
+    <span class="n">01</span>
+    <span class="t">Full design <small>Entry gate &rarr; staged hero &rarr; homepage. The current one.</small></span>
+    <span class="go">&#8599;</span></a></li>
+
+  <li><a href="main-hero/main-hero.html">
+    <span class="n">02</span>
+    <span class="t">Main hero <small>The approved chrome mark with the glass lens. Frozen reference.</small></span>
+    <span class="go">&#8599;</span></a></li>
+
+  <li><a href="entry-gates/entry-gates.html">
+    <span class="n">03</span>
+    <span class="t">Entry gates <small>Language and visitor type, standalone. Frozen reference.</small></span>
+    <span class="go">&#8599;</span></a></li>
+
+  <li><a href="safari-check.html">
+    <span class="n">04</span>
+    <span class="t">Safari capability check <small>Which effects render in your browser. Open this one in Safari.</small></span>
+    <span class="go">&#8599;</span></a></li>
+</ul>
+
+<footer>
+  <span>Not the live site &mdash; that is <a href="https://eventology.sa">eventology.sa</a></span>
+  <span>Unlisted &middot; noindex</span>
+</footer>
+
+</body>
+</html>
